@@ -13,13 +13,13 @@ let checkDaiBalance (ctx: TestContext) (dai: DAI) = async {
 
 let grab (ctx: TestContext) (dai: DAI) amount = async {
     let callData = 
-        dai.transferTransactionInput(
-            dst = ctx.Connection.Account.Address, 
+        dai.mintTransactionInput(
+            usr = ctx.Connection.Account.Address, 
             wad = dollar amount,  
-            weiValue = weiValue 0UL,
-            gasLimit = gasLlimit 9500000UL,
-            gasPrice = gasPrice 0UL,
-            From = "0x40ec5b33f54e0e8a33a975908c5ba1c14e5bbbdf",
+            // weiValue = weiValue 0UL,
+            // gasLimit = gasLlimit 9500000UL,
+            // gasPrice = gasPrice 0UL,
+            From = "0xb5b06a16621616875A6C2637948bF98eA57c58fa",
             To = dai.Address)
     let! txr = ctx.Connection.MakeImpersonatedCallAsync callData
     

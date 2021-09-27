@@ -28,7 +28,7 @@ let protocolDataProvider (ctx: TestContext) =
 
 let dai (ctx: TestContext) = 
     let address = configuration.Addresses.Dai
-    DAI(address, ctx.Web3)
+    DAI(address, ctx.Web3, gasPrice = 73855284841UL)
 
 let aDai (ctx: TestContext) = 
     let address = configuration.Addresses.aDai

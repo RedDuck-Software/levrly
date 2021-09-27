@@ -154,13 +154,15 @@ type EthereumConnection(nodeURI: string, privKey: string) =
         }
 
     member this.HardhatResetAsync =
-        let input = 
-            HardhatResetInput(
-                Forking=
-                    HardhatForkInput(
-                        BlockNumber=getLatesBlockNumberUsingEtherscan(),
-                        JsonRpcUrl=configuration.JsonRpcUrl))
-        HardhatReset(this.Web3.Client).SendRequestAsync input None
+        Async.Sleep(1) |> Async.StartAsTask
+        // let input = 
+        //     HardhatResetInput(
+        //         Forking=
+        //             HardhatForkInput(
+        //                 BlockNumber=  12330245UL,//getLatesBlockNumberUsingEtherscan(),
+        //                 // BlockNumber=  getLatesBlockNumberUsingEtherscan(),
+        //                 JsonRpcUrl=configuration.JsonRpcUrl))
+        // HardhatReset(this.Web3.Client).SendRequestAsync input None
 
     member this.DeployContract (abi: Abi) (constructorParams: list<#obj>) =
         let constructorParams = 

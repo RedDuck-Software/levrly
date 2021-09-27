@@ -24,11 +24,14 @@ module.exports = {
   },
   solidity: "0.5.17",
   networks: {
+    development: {
+      url: "http://127.0.0.1:8545",
+    },
     hardhat: {
       chainId: 1,
       throwOnCallFailures: true,
       throwOnTransactionFailures: true,
-      gasPrice: 0,
+      // gasPrice: 800000000000,
       forking: {
       	url: "https://eth-mainnet.alchemyapi.io/v2/5VaoQ3iNw3dVPD_PNwd5I69k3vMvdnNj"
       }
