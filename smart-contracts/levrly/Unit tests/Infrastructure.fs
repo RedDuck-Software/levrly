@@ -38,6 +38,11 @@ let configuration =
     EtherscanApiKey = "H7VWS7XRGI3CVHRBSVZCE5IW5J8KQBVFVE"
     RpcTimeoutInSeconds = 100.|}
 
+type HardhatResetState =
+| NoReset
+| ResetToLastBlock
+| ResteToBlock of uint64
+
 /// Equal of 'uint(-1)' in solidity.
 let uint256MaxValue = 
     115792089237316195423570985008687907853269984665640564039457584007913129639935I
@@ -69,6 +74,10 @@ let getLatesBlockNumberUsingEtherscan () =
                 headers = [ "Accept", "application/json" ])
         |> JsonConvert.DeserializeObject<Linq.JObject>
     json.Value<string>("result") |> Convert.ToUInt64
+
+let blockNumberOnStart = uint64 (getLatestBlockNumberUsingForkJsonRpc()).Value - 10UL
+
+let ``block number of 28.04.21`` = 12330245UL 
 
 type HardhatForkInput() =
     [<JsonProperty(PropertyName = "jsonRpcUrl")>]
@@ -153,14 +162,22 @@ type EthereumConnection(nodeURI: string, privKey: string) =
             return txr
         }
 
-    member this.HardhatResetAsync =
+    member this.HardhatResetAsync blockNumber =
         let input = 
             HardhatResetInput(
                 Forking=
                     HardhatForkInput(
-                        BlockNumber=getLatesBlockNumberUsingEtherscan(),
+                        BlockNumber= blockNumber,
                         JsonRpcUrl=configuration.JsonRpcUrl))
         HardhatReset(this.Web3.Client).SendRequestAsync input None
+
+    member this.SetBalanceAsync (address: string, amount:BigInteger) = 
+        this.Web3.Client.SendRequestAsync(RpcRequest(0, "hardhat_setBalance", address, "0x" + amount.ToString("X") )) 
+        |> Async.AwaitTask
+
+    member this.SetNextBlockBaseFeePerGasAsync (amount:BigInteger) = 
+        this.Web3.Client.SendRequestAsync(RpcRequest(0, "hardhat_setNextBlockBaseFeePerGas", "0x" + amount.ToString("X") )) 
+        |> Async.AwaitTask
 
     member this.DeployContract (abi: Abi) (constructorParams: list<#obj>) =
         let constructorParams = 
@@ -177,14 +194,21 @@ type EthereumConnection(nodeURI: string, privKey: string) =
             receiptRequestCancellationToken = null,
             values = constructorParams)
 
-type TestContext(privateKey: string, preserveState: bool) =
+type TestContext(privateKey: string, resetState: HardhatResetState) =
     let connection = EthereumConnection("http://127.0.0.1:8545/", privateKey)
     do Nethereum.JsonRpc.Client.ClientBase.ConnectionTimeout <-  TimeSpan.FromSeconds(configuration.RpcTimeoutInSeconds)
     
-    do if not preserveState then connection.HardhatResetAsync.Wait()
+    do
+        match resetState with
+        | NoReset -> ()
+        | ResetToLastBlock -> 
+            let lastNumber = getLatesBlockNumberUsingEtherscan()
+            connection.HardhatResetAsync(lastNumber).Wait()
+        | ResteToBlock blockNumber -> connection.HardhatResetAsync(blockNumber).Wait()
 
-    new() = new TestContext(configuration.AccountPrivateKey0, false)
+    new() = new TestContext(configuration.AccountPrivateKey0, ResetToLastBlock)
 
+    new(resetState: HardhatResetState) = new TestContext(configuration.AccountPrivateKey0, resetState)
 
     member _.Web3 = connection.Web3
 
@@ -197,16 +221,20 @@ type TestContext(privateKey: string, preserveState: bool) =
             // TODO: Find effective way to call HRE 'hardhat_reset'.
             ()
 
-let withContext (f: TestContext -> unit) = 
-    use ctx = new TestContext()
+let withContext (resetState: HardhatResetState) (f: TestContext -> unit) = 
+    use ctx = new TestContext(resetState)
     f ctx
 
-let withContextAsync (f: TestContext -> Async<unit>) = 
-    use ctx = new TestContext()
-    f ctx |> Async.RunSynchronously
+let withContextAsync (resetState: HardhatResetState) (f: TestContext -> Async<unit>) = 
+    use ctx = new TestContext(resetState)
+    async {
+        do! ctx.Connection.SetNextBlockBaseFeePerGasAsync(bigint 0)
+        do! f ctx
+    } |> Async.RunSynchronously
+
 
 let inNestedContextAsync privateKey (f: TestContext -> Async<'a>) =
-    use ctx = new TestContext(privateKey, true)
+    use ctx = new TestContext(privateKey, NoReset)
     f ctx
     
 // TODO: Make it work.

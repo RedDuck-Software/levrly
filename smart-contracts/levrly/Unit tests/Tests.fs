@@ -7,7 +7,7 @@ open Domain
 
 [<Fact>]
 let ``LendingPool ready`` () = 
-    withContext 
+    withContext NoReset
     <| fun ctx -> 
         let lendingPool = lendingPool ctx
         let revision = lendingPool.LENDINGPOOL_REVISIONQuery()
@@ -17,7 +17,7 @@ let ``LendingPool ready`` () =
 
 [<Fact>]
 let ``DAI total supply non zero`` () = 
-    withContext 
+    withContext NoReset
     <| fun ctx -> 
         let dai = dai ctx
         let totalSupply = dai.totalSupplyQuery()
@@ -25,7 +25,7 @@ let ``DAI total supply non zero`` () =
 
 [<Fact>]
 let ``Some guy has DAI`` () = 
-    withContext 
+    withContext (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> 
         let dai = dai ctx
         let balance = dai.balanceOfQuery("0x40ec5b33f54e0e8a33a975908c5ba1c14e5bbbdf")
@@ -33,7 +33,7 @@ let ``Some guy has DAI`` () =
 
 [<Fact>]
 let ``Some guy has SNX`` () = 
-    withContext 
+    withContext (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> 
         let snx = snx ctx
         let balance = snx.balanceOfQuery("0xf05e2a70346560d3228c7002194bb7c5dc8fe100")
@@ -41,7 +41,7 @@ let ``Some guy has SNX`` () =
 
 [<Fact>]
 let ``DAI acquired`` () = 
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let dai = dai ctx
 
@@ -53,7 +53,7 @@ let ``DAI acquired`` () =
 
 [<Fact>]
 let ``DAI deposited`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock blockNumberOnStart)
     <| fun ctx -> async {
         let dai = dai ctx
         let aDai = aDai ctx
@@ -73,7 +73,7 @@ let ``DAI deposited`` () =
 
 [<Fact>]
 let ``SNX borrowed against DAI collaterall`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock blockNumberOnStart)
     <| fun ctx -> async {
         let dai = dai ctx
         let snx = snx ctx
@@ -90,7 +90,7 @@ let ``SNX borrowed against DAI collaterall`` () =
 
 [<Fact>]
 let ``SNX can be transferred`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock blockNumberOnStart)
     <| fun ctx -> async {
         let dai = dai ctx
         let snx = snx ctx
@@ -111,7 +111,7 @@ let ``SNX can be transferred`` () =
 
 [<Fact>]
 let ``DAI price changed`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let lpAddressProvider = lendingPoolAddressProvider ctx
         let! oldPriceOracleAddress = await ^ lpAddressProvider.getPriceOracleQueryAsync()
@@ -129,7 +129,7 @@ let ``DAI price changed`` () =
 
 [<Fact>]
 let ``Asset prices are as expected`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let lpAddressProvider = lendingPoolAddressProvider ctx
         let! priceOracleAddress = await ^ lpAddressProvider.getPriceOracleQueryAsync()
@@ -145,7 +145,7 @@ let ``Asset prices are as expected`` () =
 
 [<Fact>]
 let ``Money lost`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let lpAddressProvider = lendingPoolAddressProvider ctx
         let! oldPriceOracleAddress = await ^ lpAddressProvider.getPriceOracleQueryAsync()
@@ -190,7 +190,7 @@ let ``Money lost`` () =
 
 [<Fact>]
 let ``Liquidation can be done on account with bad health`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let lpAddressProvider = lendingPoolAddressProvider ctx
         let! oldPriceOracleAddress = await ^ lpAddressProvider.getPriceOracleQueryAsync()
@@ -264,7 +264,7 @@ let ``Liquidation can be done on account with bad health`` () =
 /// set to 1 wei.
 [<Fact>]
 let ``Liquidated account health more then 1`` () =
-    withContextAsync
+    withContextAsync (ResteToBlock ``block number of 28.04.21``)
     <| fun ctx -> async {
         let lpAddressProvider = lendingPoolAddressProvider ctx
         let! oldPriceOracleAddress = await ^ lpAddressProvider.getPriceOracleQueryAsync()
@@ -334,7 +334,7 @@ open Nethereum.RPC.Eth.DTOs
 
 [<Fact>]
 let ``Swap ETH to DAI using 1Inch`` () =
-    withContextAsync
+    withContextAsync ResetToLastBlock
     <| fun ctx -> async {
         let chainId = 1
         let slippage = 3
@@ -389,7 +389,7 @@ let ``Swap ETH to DAI using 1Inch`` () =
 
 [<Fact>]
 let ``Swap ETH to DAI using ZeroEx`` () =
-    withContextAsync
+    withContextAsync ResetToLastBlock
     <| fun ctx -> async {
         let chainId = 1
         let ethAddress = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
