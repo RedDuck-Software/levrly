@@ -9,13 +9,14 @@ let generateBaseApiUrl chainId =
     let prefix =
         match chainId with
         | 3 -> "ropsten."
+        | 42 -> "kovan."
         | 56 -> "bsc."
         | 137 -> "polygon."
         | 43114 -> "avalanche."
         | _ -> System.String.Empty
     $"https://{prefix}api.0x.org/"
 
-let getSwapData chainId (buyTokenSymbol: string) (sellTokenSymbol:string) (sellAmount: bigint) =
+let getSwapData chainId (sellTokenSymbol:string) (buyTokenSymbol: string) (sellAmount: bigint) =
     let baseApiUrl = generateBaseApiUrl chainId
 
     let json = 

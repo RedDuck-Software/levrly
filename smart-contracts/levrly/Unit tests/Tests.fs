@@ -4,6 +4,10 @@ open Xunit
 open Infrastructure
 open Contracts
 open Domain
+open AbiTypeProvider.Common
+open Nethereum.Hex.HexTypes
+open Nethereum.RPC.Eth.DTOs
+
 
 [<Fact>]
 let ``LendingPool ready`` () = 
@@ -328,9 +332,6 @@ let ``Liquidated account health more then 1`` () =
         Assert.Equal(341493125242737982I, acc.healthFactor)
     }
 
-open AbiTypeProvider.Common
-open Nethereum.Hex.HexTypes
-open Nethereum.RPC.Eth.DTOs
 
 [<Fact>]
 let ``Swap ETH to DAI using 1Inch`` () =
@@ -392,41 +393,32 @@ let ``Swap ETH to DAI using ZeroEx`` () =
     withContextAsync ResetToLastBlock
     <| fun ctx -> async {
         let chainId = 1
-        let ethAddress = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        let daiAddress = "0x6b175474e89094c44da98b954eedeac495271d0f"
         let amount = 10000000000000000I
-        let addressFrom = OneInch.DefaultIntermediateAddress
+        let addressFrom = ctx.Connection.Account.Address
 
         printf "block number: %A\n" (ctx.Web3.Eth.Blocks.GetBlockNumber.SendRequestAsync() |> runNow) 
         let (contractAddress, data, value, gas, gasPrice) =
-            ZeroEx.getSwapData
-                chainId
-                ethAddress
-                daiAddress
-                amount
+            ZeroEx.getSwapData chainId "ETH" "DAI" amount
 
-        let gas' = if gas = 0I then 12450000I else gas
+        let gas' = (if gas = 0I then 12450000I else gas) + 20000I
 
         let callData = 
             TransactionInput(
                 data=data, 
                 addressTo = contractAddress, 
-                addressFrom = addressFrom, 
+                addressFrom = addressFrom,
                 gas = HexBigInteger(gas'), 
                 gasPrice = HexBigInteger(gasPrice),
                 value = HexBigInteger(value))
 
-        printf "gas price: %A\n" (gasPrice)
-
+        printfn "gasLimit: %A" gas
+        printfn "new gasLimit: %A" gas'
         let dai = dai ctx    
         let daiBefore = dai.balanceOfQueryAsync(addressFrom) |> runNow
-        let! txr = ctx.Connection.MakeImpersonatedCallAsync callData 
+        let! txr = await ^ ctx.Connection.Web3.TransactionManager.SendTransactionAndWaitForReceiptAsync(callData, null)
         let daiAfter = dai.balanceOfQueryAsync(addressFrom) |> runNow
 
         Assert.NotEqual(daiBefore, daiAfter);
-
-        printf "daiBefore: %A\n" daiBefore
-        printf "daiAfter: %A\n" daiAfter
 
         Assert.Equal(HexBigInteger(1I), txr.Status)
     }
